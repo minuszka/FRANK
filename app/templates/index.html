@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ImageAgent</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <div class="background-glow"></div>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>ImageAgent</h1>
+          <p>Ollama + ComfyUI (FLUX) helyi asszisztens</p>
+        </div>
+        <div class="topbar-actions">
+          <label class="stream-toggle">
+            <input id="streamToggle" type="checkbox" checked />
+            Streaming
+          </label>
+          <button id="clearHistoryBtn" class="ghost-btn">History törlése</button>
+        </div>
+      </header>
+
+      <section id="chatWindow" class="chat-window" aria-live="polite"></section>
+
+      <footer class="composer">
+        <input
+          id="messageInput"
+          type="text"
+          placeholder="Írj üzenetet... (pl. Generálj képet egy futurisztikus budapesti látképről)"
+          autocomplete="off"
+        />
+        <button id="sendBtn">Send</button>
+      </footer>
+      <div id="statusBar" class="status-bar"></div>
+    </main>
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>
+

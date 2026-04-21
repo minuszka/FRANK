@@ -1,0 +1,2 @@
+"""ImageAgent application package."""
+
