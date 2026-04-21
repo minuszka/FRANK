@@ -1,42 +1,121 @@
 <!doctype html>
-<html lang="hu">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ImageAgent</title>
+    <title>FrankAI.art</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/static/css/styles.css" />
   </head>
   <body>
-    <div class="background-glow"></div>
-    <main class="app-shell">
-      <header class="topbar">
-        <div>
-          <h1>ImageAgent</h1>
-          <p>Ollama + ComfyUI (FLUX) helyi asszisztens</p>
-        </div>
-        <div class="topbar-actions">
-          <label class="stream-toggle">
-            <input id="streamToggle" type="checkbox" checked />
-            Streaming
-          </label>
-          <button id="clearHistoryBtn" class="ghost-btn">History törlése</button>
-        </div>
-      </header>
+    <div class="aurora"></div>
+    <div class="grid-overlay"></div>
+    <main class="shell">
+      <aside class="side left-side">
+        <section class="panel brand-panel">
+          <div class="brand-mark" aria-hidden="true">
+            <span>FA</span>
+          </div>
+          <h1>FrankAI.art</h1>
+          <p>Local multimodal command center powered by Ollama + ComfyUI FLUX.</p>
+        </section>
+        <section class="panel">
+          <h2>Quick Prompts</h2>
+          <div class="chip-grid">
+            <button class="prompt-chip" data-prompt="Generate an image of a neon cyberpunk city with flying trains and rain.">
+              Cyberpunk City
+            </button>
+            <button class="prompt-chip" data-prompt="Explain recursion in JavaScript with one practical example.">
+              JS Recursion
+            </button>
+            <button class="prompt-chip" data-prompt="Create a cinematic portrait of a seasoned sailor in dramatic light.">
+              Cinematic Portrait
+            </button>
+            <button class="prompt-chip" data-prompt="Write a Python script that renames files by date and logs changes.">
+              Python Rename Script
+            </button>
+          </div>
+        </section>
+        <section class="panel compact">
+          <h2>Session Stats</h2>
+          <dl class="stats-grid">
+            <div>
+              <dt>Messages</dt>
+              <dd id="statMessages">0</dd>
+            </div>
+            <div>
+              <dt>Images</dt>
+              <dd id="statImages">0</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
 
-      <section id="chatWindow" class="chat-window" aria-live="polite"></section>
+      <section class="chat-stage">
+        <header class="chat-header">
+          <div>
+            <h2>Neural Chat Console</h2>
+            <p>Talk, code, and generate images with one assistant.</p>
+          </div>
+          <div class="header-controls">
+            <label class="stream-toggle">
+              <input id="streamToggle" type="checkbox" checked />
+              <span>Streaming</span>
+            </label>
+            <button id="clearHistoryBtn" class="ghost-btn">Clear History</button>
+          </div>
+        </header>
 
-      <footer class="composer">
-        <input
-          id="messageInput"
-          type="text"
-          placeholder="Írj üzenetet... (pl. Generálj képet egy futurisztikus budapesti látképről)"
-          autocomplete="off"
-        />
-        <button id="sendBtn">Send</button>
-      </footer>
-      <div id="statusBar" class="status-bar"></div>
+        <section id="chatWindow" class="chat-window" aria-live="polite"></section>
+
+        <footer class="composer-wrap">
+          <div class="composer-box">
+            <textarea
+              id="messageInput"
+              rows="1"
+              placeholder="Ask anything... (chat, code, or image generation)"
+              autocomplete="off"
+            ></textarea>
+            <div class="composer-footer">
+              <div id="statusBar" class="status-bar"></div>
+              <button id="sendBtn" class="send-btn">Send Message</button>
+            </div>
+          </div>
+        </footer>
+      </section>
+
+      <aside class="side right-side">
+        <section class="panel">
+          <h2>Pipeline</h2>
+          <ul class="pipeline-list">
+            <li><span class="dot chat"></span> Chat</li>
+            <li><span class="dot code"></span> Code</li>
+            <li><span class="dot image"></span> Image</li>
+          </ul>
+        </section>
+        <section class="panel">
+          <h2>Session ID</h2>
+          <code id="sessionBadge" class="session-badge"></code>
+        </section>
+        <section class="panel">
+          <h2>Last Generated Image</h2>
+          <div id="lastImageWrap" class="last-image empty">
+            <p>No generated image yet.</p>
+          </div>
+        </section>
+      </aside>
     </main>
+
+    <div id="imageModal" class="image-modal" hidden>
+      <button id="imageModalClose" class="modal-close" aria-label="Close image preview">x</button>
+      <img id="imageModalImg" alt="Generated image preview" />
+      <a id="imageModalLink" href="#" target="_blank" rel="noopener noreferrer">Open Original</a>
+    </div>
     <script src="/static/js/app.js"></script>
   </body>
 </html>
-

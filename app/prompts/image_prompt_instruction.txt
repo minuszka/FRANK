@@ -6,7 +6,7 @@ Rules:
 3) Fill missing fields with sensible values.
 4) Keep prompt descriptive and production-ready for FLUX image generation.
 5) Use this schema:
-{
+{{
   "action": "generate_image",
   "prompt": "string",
   "negative_prompt": "string",
@@ -17,7 +17,7 @@ Rules:
   "seed": integer or null,
   "style_hint": "string or null",
   "output_format": "png"
-}
+}}
 
 Defaults:
 - width: {default_width}
@@ -29,4 +29,3 @@ Defaults:
 
 If user request is vague, still produce a good detailed prompt and keep values reasonable.
 If user mentions a style, include it in style_hint.
-

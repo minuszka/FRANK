@@ -25,6 +25,7 @@ class ComfyUIService(ImageBackend):
     PROMPT_NODE_ID = "6"
     NEGATIVE_PROMPT_NODE_ID = "7"
     SAMPLER_NODE_ID = "3"
+    MODEL_SAMPLING_NODE_ID = "4"
     LATENT_NODE_ID = "5"
     SAVE_NODE_ID = "9"
 
@@ -96,20 +97,64 @@ class ComfyUIService(ImageBackend):
         seed: int,
         filename_prefix: str,
     ) -> None:
-        self._set_node_input(workflow, self.PROMPT_NODE_ID, "text", request.prompt)
-        self._set_node_input(
-            workflow, self.NEGATIVE_PROMPT_NODE_ID, "text", request.negative_prompt
+        self._set_prompt_like_text(
+            workflow, self.PROMPT_NODE_ID, request.prompt, request.guidance
+        )
+        self._set_prompt_like_text(
+            workflow,
+            self.NEGATIVE_PROMPT_NODE_ID,
+            request.negative_prompt,
+            request.guidance,
         )
         self._set_node_input(workflow, self.LATENT_NODE_ID, "width", request.width)
         self._set_node_input(workflow, self.LATENT_NODE_ID, "height", request.height)
+        model_sampling = workflow.get(self.MODEL_SAMPLING_NODE_ID)
+        if isinstance(model_sampling, dict) and model_sampling.get("class_type") == "ModelSamplingFlux":
+            self._set_node_input(
+                workflow, self.MODEL_SAMPLING_NODE_ID, "width", request.width
+            )
+            self._set_node_input(
+                workflow, self.MODEL_SAMPLING_NODE_ID, "height", request.height
+            )
         self._set_node_input(workflow, self.SAMPLER_NODE_ID, "steps", request.steps)
         self._set_node_input(workflow, self.SAMPLER_NODE_ID, "cfg", request.guidance)
         self._set_node_input(workflow, self.SAMPLER_NODE_ID, "seed", seed)
         self._set_node_input(workflow, self.SAVE_NODE_ID, "filename_prefix", filename_prefix)
 
+    def _set_prompt_like_text(
+        self,
+        workflow: dict[str, Any],
+        node_id: str,
+        value: str,
+        guidance: float,
+    ) -> None:
+        inputs = self._get_node_inputs(workflow, node_id)
+        assigned = False
+
+        if "text" in inputs:
+            inputs["text"] = value
+            assigned = True
+
+        # CLIPTextEncodeFlux expects these keys instead of plain "text".
+        if "clip_l" in inputs:
+            inputs["clip_l"] = value
+            assigned = True
+        if "t5xxl" in inputs:
+            inputs["t5xxl"] = value
+            assigned = True
+        if "guidance" in inputs:
+            inputs["guidance"] = guidance
+
+        if not assigned:
+            inputs["text"] = value
+
     def _set_node_input(
         self, workflow: dict[str, Any], node_id: str, input_name: str, value: Any
     ) -> None:
+        inputs = self._get_node_inputs(workflow, node_id)
+        inputs[input_name] = value
+
+    def _get_node_inputs(self, workflow: dict[str, Any], node_id: str) -> dict[str, Any]:
         node = workflow.get(node_id)
         if not isinstance(node, dict):
             raise AppError(
@@ -124,7 +169,7 @@ class ComfyUIService(ImageBackend):
                 status_code=500,
                 code="workflow_node_invalid",
             )
-        inputs[input_name] = value
+        return inputs
 
     async def _submit_prompt(self, workflow: dict[str, Any]) -> str:
         url = f"{self.settings.comfyui_base_url}/prompt"
@@ -246,4 +291,3 @@ class ComfyUIService(ImageBackend):
         lowered = text.lower()
         slug = re.sub(r"[^a-z0-9]+", "_", lowered)
         return slug.strip("_")
-

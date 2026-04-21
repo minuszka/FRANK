@@ -4,13 +4,27 @@ const sendBtn = document.getElementById("sendBtn");
 const clearHistoryBtn = document.getElementById("clearHistoryBtn");
 const statusBar = document.getElementById("statusBar");
 const streamToggle = document.getElementById("streamToggle");
+const statMessages = document.getElementById("statMessages");
+const statImages = document.getElementById("statImages");
+const sessionBadge = document.getElementById("sessionBadge");
+const promptChips = document.querySelectorAll(".prompt-chip");
+const lastImageWrap = document.getElementById("lastImageWrap");
 
-const sessionStorageKey = "imageagent_session_id";
+const imageModal = document.getElementById("imageModal");
+const imageModalImg = document.getElementById("imageModalImg");
+const imageModalLink = document.getElementById("imageModalLink");
+const imageModalClose = document.getElementById("imageModalClose");
+
+const sessionStorageKey = "frankai_session_id";
 let sessionId = localStorage.getItem(sessionStorageKey);
+let totalMessages = 0;
+let totalImages = 0;
+
 if (!sessionId) {
   sessionId = crypto.randomUUID();
   localStorage.setItem(sessionStorageKey, sessionId);
 }
+sessionBadge.textContent = sessionId;
 
 function setStatus(text = "") {
   statusBar.textContent = text;
@@ -18,6 +32,11 @@ function setStatus(text = "") {
 
 function scrollToBottom() {
   chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function autosizeInput() {
+  messageInput.style.height = "auto";
+  messageInput.style.height = `${Math.min(messageInput.scrollHeight, 220)}px`;
 }
 
 function formatDate(isoValue) {
@@ -28,56 +47,151 @@ function formatDate(isoValue) {
   }
 }
 
-function createMessageElement({ role, content, createdAt, isError = false, image }) {
-  const wrapper = document.createElement("article");
-  wrapper.className = `message ${role === "user" ? "user" : "assistant"}${isError ? " error" : ""}`;
+function prettifyTaskType(taskType) {
+  if (!taskType) {
+    return "";
+  }
+  return String(taskType).toLowerCase();
+}
 
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.textContent = `${role === "user" ? "Te" : "Assistant"} • ${formatDate(createdAt)}`;
-  wrapper.appendChild(meta);
+function updateStats() {
+  statMessages.textContent = String(totalMessages);
+  statImages.textContent = String(totalImages);
+}
+
+function setLastImage(imageUrl) {
+  if (!imageUrl) {
+    return;
+  }
+  lastImageWrap.classList.remove("empty");
+  lastImageWrap.innerHTML = "";
+  const image = document.createElement("img");
+  image.src = imageUrl;
+  image.alt = "Last generated image";
+  image.addEventListener("click", () => openImageModal(imageUrl));
+  lastImageWrap.appendChild(image);
+}
+
+function openImageModal(url) {
+  imageModalImg.src = url;
+  imageModalLink.href = url;
+  imageModal.hidden = false;
+}
+
+function closeImageModal() {
+  imageModal.hidden = true;
+  imageModalImg.src = "";
+  imageModalLink.href = "#";
+}
+
+function createImageElements(image, onClickUrl) {
+  const fragment = document.createDocumentFragment();
+  const img = document.createElement("img");
+  img.className = "preview";
+  img.src = image.image_url;
+  img.alt = "Generated image preview";
+  img.addEventListener("click", () => openImageModal(onClickUrl || image.image_url));
+  fragment.appendChild(img);
+
+  const link = document.createElement("a");
+  link.className = "image-link";
+  link.href = image.image_url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Open image in new tab";
+  fragment.appendChild(link);
+  return fragment;
+}
+
+function createMessageElement({
+  role,
+  content,
+  createdAt,
+  image,
+  isError = false,
+  taskType,
+  routeReason,
+}) {
+  const row = document.createElement("article");
+  const normalizedRole = role === "user" ? "user" : "assistant";
+  row.className = `chat-row ${normalizedRole}${isError ? " error" : ""}`;
+
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = normalizedRole === "user" ? "YOU" : "AI";
+  row.appendChild(avatar);
+
+  const card = document.createElement("div");
+  card.className = "message-card";
+
+  const head = document.createElement("div");
+  head.className = "message-head";
+
+  const sender = document.createElement("span");
+  sender.className = "sender";
+  sender.textContent = normalizedRole === "user" ? "You" : "FrankAI";
+  head.appendChild(sender);
+
+  const time = document.createElement("span");
+  time.className = "time";
+  time.textContent = formatDate(createdAt);
+  head.appendChild(time);
+
+  if (taskType && normalizedRole === "assistant") {
+    const pill = document.createElement("span");
+    pill.className = `route-pill ${prettifyTaskType(taskType)}`;
+    pill.textContent = prettifyTaskType(taskType);
+    head.appendChild(pill);
+  }
+
+  card.appendChild(head);
 
   const body = document.createElement("div");
   body.className = "content";
   body.textContent = content || "";
-  wrapper.appendChild(body);
+  card.appendChild(body);
 
-  if (image && image.image_url) {
-    const img = document.createElement("img");
-    img.className = "preview";
-    img.src = image.image_url;
-    img.alt = "Generated image preview";
-    wrapper.appendChild(img);
-
-    const link = document.createElement("a");
-    link.className = "image-link";
-    link.href = image.image_url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = "Kép megnyitása külön";
-    wrapper.appendChild(link);
+  if (routeReason && normalizedRole === "assistant") {
+    const reason = document.createElement("div");
+    reason.className = "route-reason";
+    reason.textContent = `Route: ${routeReason}`;
+    card.appendChild(reason);
   }
 
-  return wrapper;
+  if (image && image.image_url) {
+    card.appendChild(createImageElements(image, image.image_url));
+  }
+
+  row.appendChild(card);
+  row._contentNode = body;
+  row._cardNode = card;
+  return row;
 }
 
 function addMessage(payload) {
   const element = createMessageElement(payload);
   chatWindow.appendChild(element);
+
+  if (payload.role === "assistant" || payload.role === "user") {
+    totalMessages += 1;
+  }
+  if (payload.image && payload.image.image_url) {
+    totalImages += 1;
+    setLastImage(payload.image.image_url);
+  }
+  updateStats();
   scrollToBottom();
   return element;
 }
 
 function addLoadingMessage() {
-  const loading = document.createElement("article");
-  loading.className = "message assistant";
-  loading.innerHTML = `
-    <div class="meta">Assistant</div>
-    <div class="content loading-dots">Dolgozom<span>.</span><span>.</span><span>.</span></div>
-  `;
-  chatWindow.appendChild(loading);
-  scrollToBottom();
-  return loading;
+  return addMessage({
+    role: "assistant",
+    content: "Synthesizing response",
+    createdAt: new Date().toISOString(),
+    taskType: streamToggle.checked ? "stream" : "pending",
+    routeReason: "",
+  });
 }
 
 async function loadHistory() {
@@ -85,58 +199,37 @@ async function loadHistory() {
     const response = await fetch(`/api/history?session_id=${encodeURIComponent(sessionId)}`);
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.detail || "History lekérés sikertelen.");
+      throw new Error(data.detail || "Failed to load chat history.");
     }
+
     chatWindow.innerHTML = "";
-    for (const message of data.messages || []) {
+    totalMessages = 0;
+    totalImages = 0;
+    let latestImage = null;
+
+    for (const item of data.messages || []) {
+      const imageUrl = item.metadata ? item.metadata.image_url : null;
       addMessage({
-        role: message.role,
-        content: message.content,
-        createdAt: message.created_at,
-        image: message.metadata ? { image_url: message.metadata.image_url } : null,
+        role: item.role,
+        content: item.content,
+        createdAt: item.created_at,
+        image: imageUrl ? { image_url: imageUrl } : null,
       });
+      if (imageUrl) {
+        latestImage = imageUrl;
+      }
+    }
+
+    if (latestImage) {
+      setLastImage(latestImage);
     }
   } catch (error) {
     addMessage({
       role: "assistant",
-      content: `Hiba a history betöltésekor: ${error.message}`,
+      content: `History load failed: ${error.message}`,
       createdAt: new Date().toISOString(),
       isError: true,
     });
-  }
-}
-
-async function sendMessage() {
-  const message = messageInput.value.trim();
-  if (!message) {
-    return;
-  }
-
-  messageInput.value = "";
-  addMessage({ role: "user", content: message, createdAt: new Date().toISOString() });
-  const loadingNode = addLoadingMessage();
-  setStatus("Kérés fut...");
-  sendBtn.disabled = true;
-
-  try {
-    if (streamToggle.checked) {
-      await sendStreaming(message, loadingNode);
-    } else {
-      await sendClassic(message, loadingNode);
-    }
-    setStatus("");
-  } catch (error) {
-    loadingNode.remove();
-    addMessage({
-      role: "assistant",
-      content: `Hiba: ${error.message}`,
-      createdAt: new Date().toISOString(),
-      isError: true,
-    });
-    setStatus("Hiba történt.");
-  } finally {
-    sendBtn.disabled = false;
-    messageInput.focus();
   }
 }
 
@@ -148,14 +241,21 @@ async function sendClassic(message, loadingNode) {
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || data.detail || "Szerverhiba.");
+    throw new Error(data.error || data.detail || "Server error.");
   }
+
   loadingNode.remove();
+  if (totalMessages > 0) {
+    totalMessages -= 1;
+  }
+
   addMessage({
     role: "assistant",
     content: data.message,
     createdAt: data.created_at,
     image: data.image,
+    taskType: data.task_type,
+    routeReason: data.route_reason,
   });
 }
 
@@ -165,85 +265,158 @@ async function sendStreaming(message, loadingNode) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message, session_id: sessionId, stream: true }),
   });
+
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || data.detail || "Streaming hívás sikertelen.");
+    throw new Error(data.error || data.detail || "Streaming request failed.");
   }
   if (!response.body) {
-    throw new Error("A böngésző nem támogatja a streaminget ebben a módban.");
+    throw new Error("Browser does not expose streaming body.");
   }
 
-  const assistantMessage = addMessage({
+  const assistantNode = addMessage({
     role: "assistant",
     content: "",
     createdAt: new Date().toISOString(),
   });
-  loadingNode.remove();
 
-  const contentNode = assistantMessage.querySelector(".content");
+  loadingNode.remove();
+  if (totalMessages > 0) {
+    totalMessages -= 1;
+  }
+
   let renderedText = "";
   let finalImage = null;
+  let finalTaskType = "";
+  let finalRouteReason = "";
+  const contentNode = assistantNode._contentNode;
+  const head = assistantNode.querySelector(".message-head");
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
-  let activeEvent = "message";
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
       break;
     }
-    buffer += decoder.decode(value, { stream: true });
-    const blocks = buffer.split("\n\n");
-    buffer = blocks.pop() || "";
 
-    for (const rawBlock of blocks) {
-      const lines = rawBlock.split("\n");
-      let dataText = "";
+    buffer += decoder.decode(value, { stream: true });
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() || "";
+
+    for (const block of chunks) {
+      const lines = block.split("\n");
+      let eventType = "message";
+      const dataLines = [];
+
       for (const line of lines) {
         if (line.startsWith("event:")) {
-          activeEvent = line.replace("event:", "").trim();
+          eventType = line.slice(6).trim();
         } else if (line.startsWith("data:")) {
-          dataText += line.replace("data:", "").trim();
+          dataLines.push(line.slice(5).trim());
         }
       }
 
-      if (!dataText) {
+      if (!dataLines.length) {
         continue;
       }
 
-      const payload = JSON.parse(dataText);
-      if (activeEvent === "token") {
+      let payload;
+      try {
+        payload = JSON.parse(dataLines.join(""));
+      } catch {
+        continue;
+      }
+
+      if (eventType === "meta") {
+        finalTaskType = payload.task_type || "";
+        finalRouteReason = payload.route_reason || "";
+        if (finalTaskType && head && !assistantNode.querySelector(".route-pill")) {
+          const pill = document.createElement("span");
+          pill.className = `route-pill ${prettifyTaskType(finalTaskType)}`;
+          pill.textContent = prettifyTaskType(finalTaskType);
+          head.appendChild(pill);
+        }
+      }
+
+      if (eventType === "token") {
         renderedText += payload.content || "";
         contentNode.textContent = renderedText;
       }
-      if (activeEvent === "done") {
+
+      if (eventType === "done") {
         if (payload.message) {
           renderedText = payload.message;
           contentNode.textContent = renderedText;
         }
         finalImage = payload.image || null;
       }
-      if (activeEvent === "error") {
-        throw new Error(payload.error || "Streaming hiba.");
+
+      if (eventType === "error") {
+        throw new Error(payload.error || "Streaming failed.");
       }
     }
   }
 
-  if (finalImage && finalImage.image_url) {
-    const img = document.createElement("img");
-    img.className = "preview";
-    img.src = finalImage.image_url;
-    assistantMessage.appendChild(img);
+  if (finalRouteReason) {
+    const reason = document.createElement("div");
+    reason.className = "route-reason";
+    reason.textContent = `Route: ${finalRouteReason}`;
+    assistantNode._cardNode.appendChild(reason);
+  }
 
-    const link = document.createElement("a");
-    link.className = "image-link";
-    link.href = finalImage.image_url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = "Kép megnyitása külön";
-    assistantMessage.appendChild(link);
+  if (finalImage && finalImage.image_url) {
+    assistantNode._cardNode.appendChild(createImageElements(finalImage, finalImage.image_url));
+    totalImages += 1;
+    setLastImage(finalImage.image_url);
+    updateStats();
+  }
+}
+
+async function sendMessage() {
+  const message = messageInput.value.trim();
+  if (!message) {
+    return;
+  }
+
+  messageInput.value = "";
+  autosizeInput();
+
+  addMessage({
+    role: "user",
+    content: message,
+    createdAt: new Date().toISOString(),
+  });
+  const loadingNode = addLoadingMessage();
+
+  setStatus("Processing...");
+  sendBtn.disabled = true;
+
+  try {
+    if (streamToggle.checked) {
+      await sendStreaming(message, loadingNode);
+    } else {
+      await sendClassic(message, loadingNode);
+    }
+    setStatus("");
+  } catch (error) {
+    loadingNode.remove();
+    if (totalMessages > 0) {
+      totalMessages -= 1;
+    }
+    updateStats();
+    addMessage({
+      role: "assistant",
+      content: `Error: ${error.message}`,
+      createdAt: new Date().toISOString(),
+      isError: true,
+    });
+    setStatus("Request failed.");
+  } finally {
+    sendBtn.disabled = false;
+    messageInput.focus();
   }
 }
 
@@ -254,31 +427,63 @@ async function clearHistory() {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.detail || "History törlés sikertelen.");
+      throw new Error(data.detail || "Failed to clear history.");
     }
+
     chatWindow.innerHTML = "";
-    setStatus("History törölve.");
+    totalMessages = 0;
+    totalImages = 0;
+    updateStats();
+    lastImageWrap.classList.add("empty");
+    lastImageWrap.innerHTML = "<p>No generated image yet.</p>";
+    setStatus("History cleared.");
   } catch (error) {
-    setStatus(`Hiba: ${error.message}`);
+    setStatus(`Error: ${error.message}`);
   }
 }
 
 sendBtn.addEventListener("click", sendMessage);
+clearHistoryBtn.addEventListener("click", clearHistory);
+
 messageInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
     sendMessage();
   }
 });
-clearHistoryBtn.addEventListener("click", clearHistory);
+
+messageInput.addEventListener("input", autosizeInput);
+
+for (const chip of promptChips) {
+  chip.addEventListener("click", () => {
+    messageInput.value = chip.dataset.prompt || "";
+    autosizeInput();
+    messageInput.focus();
+    setStatus("Prompt injected. Press Send Message.");
+  });
+}
+
+imageModalClose.addEventListener("click", closeImageModal);
+imageModal.addEventListener("click", (event) => {
+  if (event.target === imageModal) {
+    closeImageModal();
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !imageModal.hidden) {
+    closeImageModal();
+  }
+});
 
 loadHistory().then(() => {
   if (chatWindow.children.length === 0) {
     addMessage({
       role: "assistant",
       content:
-        "Szia! Kérdezhetsz általános dolgokat, programozási feladatokat, vagy kérhetsz képgenerálást is.",
+        "Welcome to FrankAI.art. Ask for chat, coding help, or image generation in one place.",
       createdAt: new Date().toISOString(),
     });
   }
 });
 
+autosizeInput();

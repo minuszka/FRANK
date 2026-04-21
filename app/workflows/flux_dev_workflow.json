@@ -30,12 +30,19 @@
     }
   },
   "4": {
-    "class_type": "CheckpointLoaderSimple",
+    "class_type": "ModelSamplingFlux",
     "inputs": {
-      "ckpt_name": "flux1-dev.safetensors"
+      "model": [
+        "10",
+        0
+      ],
+      "max_shift": 1.15,
+      "base_shift": 0.5,
+      "width": 1024,
+      "height": 1024
     },
     "_meta": {
-      "title": "FLUX.1-dev Checkpoint"
+      "title": "ModelSamplingFlux"
     }
   },
   "5": {
@@ -50,12 +57,14 @@
     }
   },
   "6": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "CLIPTextEncodeFlux",
     "inputs": {
-      "text": "PROMPT_PLACEHOLDER",
+      "clip_l": "PROMPT_PLACEHOLDER",
+      "t5xxl": "PROMPT_PLACEHOLDER",
+      "guidance": 4.0,
       "clip": [
-        "4",
-        1
+        "11",
+        0
       ]
     },
     "_meta": {
@@ -63,12 +72,14 @@
     }
   },
   "7": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "CLIPTextEncodeFlux",
     "inputs": {
-      "text": "NEGATIVE_PROMPT_PLACEHOLDER",
+      "clip_l": "NEGATIVE_PROMPT_PLACEHOLDER",
+      "t5xxl": "NEGATIVE_PROMPT_PLACEHOLDER",
+      "guidance": 4.0,
       "clip": [
-        "4",
-        1
+        "11",
+        0
       ]
     },
     "_meta": {
@@ -83,8 +94,8 @@
         0
       ],
       "vae": [
-        "4",
-        2
+        "12",
+        0
       ]
     },
     "_meta": {
@@ -103,6 +114,35 @@
     "_meta": {
       "title": "Save Image"
     }
+  },
+  "10": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux1-dev-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "UNET Loader"
+    }
+  },
+  "11": {
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "clip_l.safetensors",
+      "clip_name2": "t5xxl_fp16.safetensors",
+      "type": "flux"
+    },
+    "_meta": {
+      "title": "DualCLIP Loader"
+    }
+  },
+  "12": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "_meta": {
+      "title": "VAE Loader"
+    }
   }
 }
-
