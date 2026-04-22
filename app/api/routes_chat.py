@@ -26,6 +26,9 @@ async def get_public_config(settings: Settings = Depends(get_settings)) -> dict[
         "default_image_steps": settings.default_image_steps,
         "default_image_guidance": settings.default_image_guidance,
         "output_dir": str(settings.output_dir),
+        "ollama_keep_alive": settings.ollama_keep_alive,
+        "history_context_messages": settings.history_context_messages,
+        "history_max_message_chars": settings.history_max_message_chars,
     }
 
 
@@ -46,4 +49,3 @@ async def post_chat_stream(
     logger.info("POST /api/chat/stream session=%s", payload.session_id)
     generator = chat_service.stream_chat(payload)
     return StreamingResponse(generator, media_type="text/event-stream")
-

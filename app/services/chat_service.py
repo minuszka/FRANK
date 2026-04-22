@@ -123,6 +123,9 @@ class ChatService:
         self, session_id: str, task_type: TaskType
     ) -> list[dict[str, str]]:
         history = self.history_service.get(session_id)
+        context_limit = max(2, self.ollama_service.settings.history_context_messages)
+        max_chars = max(200, self.ollama_service.settings.history_max_message_chars)
+        history = history[-context_limit:]
         if task_type == TaskType.code:
             system_message = (
                 "You are a pragmatic senior software engineer. "
@@ -136,6 +139,8 @@ class ChatService:
         messages: list[dict[str, str]] = [{"role": "system", "content": system_message}]
         for item in history:
             if item.role in {"user", "assistant"}:
-                messages.append({"role": item.role, "content": item.content})
+                content = item.content
+                if len(content) > max_chars:
+                    content = content[: max_chars - 3] + "..."
+                messages.append({"role": item.role, "content": content})
         return messages
-

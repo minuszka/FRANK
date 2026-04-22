@@ -52,8 +52,13 @@ class Settings(BaseSettings):
     )
 
     ollama_timeout_seconds: int = Field(default=120, validation_alias="OLLAMA_TIMEOUT_SECONDS")
+    ollama_keep_alive: str = Field(default="30m", validation_alias="OLLAMA_KEEP_ALIVE")
     comfyui_timeout_seconds: int = Field(
         default=300, validation_alias="COMFYUI_TIMEOUT_SECONDS"
+    )
+    history_context_messages: int = Field(default=14, validation_alias="HISTORY_CONTEXT_MESSAGES")
+    history_max_message_chars: int = Field(
+        default=2000, validation_alias="HISTORY_MAX_MESSAGE_CHARS"
     )
 
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
@@ -72,4 +77,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

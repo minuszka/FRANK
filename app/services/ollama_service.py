@@ -22,6 +22,7 @@ class OllamaService:
             "model": self.settings.ollama_model,
             "messages": messages,
             "stream": False,
+            "keep_alive": self.settings.ollama_keep_alive,
         }
         data = await self._chat_request(payload)
         message = data.get("message", {})
@@ -34,6 +35,7 @@ class OllamaService:
             "model": self.settings.ollama_model,
             "messages": messages,
             "stream": True,
+            "keep_alive": self.settings.ollama_keep_alive,
         }
         url = f"{self.settings.ollama_base_url}/api/chat"
 
@@ -90,4 +92,3 @@ class OllamaService:
                 service="ollama",
                 detail=str(exc),
             ) from exc
-
