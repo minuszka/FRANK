@@ -73,13 +73,20 @@ function setLastImage(imageUrl) {
 }
 
 function openImageModal(url) {
+  if (!url) {
+    return;
+  }
   imageModalImg.src = url;
   imageModalLink.href = url;
   imageModal.hidden = false;
+  imageModal.classList.add("is-open");
+  document.body.classList.add("modal-open");
 }
 
 function closeImageModal() {
+  imageModal.classList.remove("is-open");
   imageModal.hidden = true;
+  document.body.classList.remove("modal-open");
   imageModalImg.src = "";
   imageModalLink.href = "#";
 }
@@ -469,6 +476,8 @@ imageModal.addEventListener("click", (event) => {
     closeImageModal();
   }
 });
+imageModalImg.addEventListener("click", (event) => event.stopPropagation());
+imageModalLink.addEventListener("click", (event) => event.stopPropagation());
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !imageModal.hidden) {
     closeImageModal();

@@ -534,12 +534,24 @@ body {
 .image-modal {
   position: fixed;
   inset: 0;
-  z-index: 25;
+  z-index: 9999;
   background: rgba(4, 8, 15, 0.85);
-  display: grid;
+  display: none;
   place-items: center;
   padding: 24px;
   gap: 12px;
+}
+
+.image-modal.is-open {
+  display: grid;
+}
+
+.image-modal[hidden] {
+  display: none !important;
+}
+
+body.modal-open {
+  overflow: hidden !important;
 }
 
 .image-modal img {
@@ -553,6 +565,7 @@ body {
   position: absolute;
   top: 18px;
   right: 18px;
+  z-index: 2;
   width: 42px;
   height: 42px;
   border-radius: 999px;
@@ -652,4 +665,3 @@ body {
     min-width: 120px;
   }
 }
-

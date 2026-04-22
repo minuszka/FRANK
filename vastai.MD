@@ -25,7 +25,7 @@ Tartalmazza:
 Helyi gépről:
 
 ```powershell
-ssh -p 31379 root@ssh7.vast.ai -L 8090:localhost:8090 -L 8188:localhost:8188
+ssh -p <VAST_SSH_PORT> <VAST_USER>@<VAST_HOST> -L <LOCAL_APP_PORT>:localhost:<REMOTE_APP_PORT> -L <LOCAL_COMFY_PORT>:localhost:<REMOTE_COMFY_PORT>
 ```
 
 Ezután helyben:
@@ -38,7 +38,7 @@ Szerveren:
 
 ```bash
 cd /workspace
-git clone https://github.com/minuszka/FRANK.git
+git clone <YOUR_GITHUB_REPO_URL>
 cd FRANK
 python3 -m venv .venv
 . .venv/bin/activate

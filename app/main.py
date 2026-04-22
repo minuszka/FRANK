@@ -41,6 +41,17 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
+def get_asset_version() -> str:
+    candidates = [
+        BASE_DIR / "static" / "css" / "styles.css",
+        BASE_DIR / "static" / "js" / "app.js",
+    ]
+    mtimes = [int(path.stat().st_mtime) for path in candidates if path.exists()]
+    if not mtimes:
+        return settings.app_version
+    return str(max(mtimes))
+
+
 @app.exception_handler(AppError)
 async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
@@ -64,7 +75,10 @@ async def unhandled_error_handler(_: Request, exc: Exception) -> JSONResponse:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "asset_version": get_asset_version()},
+    )
 
 
 app.include_router(health_router)
